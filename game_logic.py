@@ -4,14 +4,19 @@ from select import select
 
 def start_game(conn, address):
     score = 0
+    timeout_retries = 0
     while True:
+        random_timeout = random.randint(3, 10)
+        data = "\nYou have %s seconds to play this character\n" % random_timeout
+        conn.send(data.encode())
+
         random_string = random.choice(string.ascii_letters)
-        conn.setblocking(0)
-        data = random_string + "\n"
+        # conn.setblocking(0)
+        data = "Character is: " + random_string + "\n"
         conn.send(data.encode())  # send data to the client
         # # receive data stream. it won't accept data packet greater than 1024 bytes
-        timeout = 5
-        rlist, wlist, xlist = select([conn], [], [], timeout)
+
+        rlist, _, _ = select([conn], [], [], random_timeout)
         if rlist:
             recieved_data = conn.recv(1024).decode().strip()
             if random_string == recieved_data:
