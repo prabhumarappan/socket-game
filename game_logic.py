@@ -1,46 +1,56 @@
 import random
 import string
 from select import select
+import json
+import time
+
+MAX_RETIRES = 3
+MIN_SCORE = -3
+MAX_SCORE = 10
+
+
+def send_json(conn, data):
+    data = json.dumps(data).encode()
+    time.sleep(0.1)
+    conn.send(data)
 
 def start_game(conn, address):
     score = 0
     timeout_retries = 0
     while True:
         random_timeout = random.randint(3, 10)
-        data = "\nYou have %s seconds to play this character\n" % random_timeout
-        conn.send(data.encode())
 
         random_string = random.choice(string.ascii_letters)
-        # conn.setblocking(0)
-        data = "Character is: " + random_string + "\n"
-        conn.send(data.encode())  # send data to the client
-        # # receive data stream. it won't accept data packet greater than 1024 bytes
+
+        data = {"timeout": random_timeout, "text": random_string}
+        send_json(conn, data)
 
         rlist, _, _ = select([conn], [], [], random_timeout)
         if rlist:
             recieved_data = conn.recv(1024).decode().strip()
             if random_string == recieved_data:
                 score += 1
-                result = "Matched the sent! score is now %s\n" % score
-                conn.send(result.encode())
+                result = {"match": True, "score": score}
+                send_json(conn, result)
             else:
                 score -= 1
-                result = "does not match the sent! score is now %s\n" % score
-                conn.send(result.encode())
+                result = {"match": False, "score": score}
+                send_json(conn, result)
             timeout_retries = 0
         else:
-            result = "Timed out!\n"
+            result = {"skip": True, "reason": "timeout", "score": score}
             timeout_retries += 1
-            conn.send(result.encode())
+            send_json(conn, result)
 
-        if timeout_retries == 3:
-            data = "Three continious retires over, game is now exiting\n Your score is %s" % score
-            conn.send(data.encode())
+        if timeout_retries == MAX_RETIRES:
+            result = {"gameover": True, "reason": "timeout", "score": score}
+            send_json(conn, result)
             break
 
-        if score == -3 or score == 10:
-            data = "Game Over! Your score is %s\n" % score
-            conn.send(data.encode())
+        if score == MIN_SCORE or score == MAX_SCORE:
+            result = {"gameover": True, "reason": "score", "score": score}
+            send_json(conn, result)
             break
 
+    conn.shutdown()
     conn.close()
