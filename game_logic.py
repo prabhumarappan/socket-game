@@ -58,5 +58,4 @@ def start_game(conn, address):
             send_json(conn, result)
             break
 
-    conn.shutdown()
     conn.close()
