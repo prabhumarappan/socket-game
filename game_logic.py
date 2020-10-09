@@ -10,11 +10,17 @@ MAX_SCORE = 10
 
 
 def send_json(conn, data):
+    """
+    Function to encode dictionary and send through the socket connection
+    """
     data = json.dumps(data).encode()
     time.sleep(0.1)
     conn.send(data)
 
 def start_game(conn, address):
+    """
+    Main function which contains the logic for the game
+    """
     score = 0
     timeout_retries = 0
     while True:
