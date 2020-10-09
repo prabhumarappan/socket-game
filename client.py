@@ -5,11 +5,18 @@ from select import select
 import sys
 
 def get_port_number():
+    """
+    Function to get the socket number from the environment variable or use the default
+    """
     port_number = os.getenv("SOCKET_GAME_PORT", 6018)
     port_number = int(port_number)
     return port_number
 
-def client_program():
+def create_connection():
+    """
+    Function to create a connection with the same localhost onto a port number specified
+    and return the connection details
+    """
     host = socket.gethostname()
     port = get_port_number()
 
@@ -17,9 +24,17 @@ def client_program():
 
     client_conn.connect((host, port))
 
+    return client_conn
+
+def client_program():
+    """
+    Main code for client which recieves for new data from server in a infinite loop
+    and takes action on the basis of message
+    """
+    client_conn = create_connection()
+
     while True:
         data = client_conn.recv(1024).decode()
-        print(data)
         data = json.loads(data)
         if "timeout" in data:
             text = data["text"]
